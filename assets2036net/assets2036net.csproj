@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <RuntimeIdentifiers>win10-x64;linux-x64;linux-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <!--<TargetFramework>netstandard2.1</TargetFramework>-->
+    <PackageId>assets2036net</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>Thomas Jung</Authors>
+    <Company>Robert Bosch GmbH</Company>
+    <PackageTags>arena2036 assets2036 bosch mqtt aas vws asset administration verwaltungsschale lightweight</PackageTags>
+    <Description>The .NET sdk to participate in assets2036 communication.</Description>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <OutputType>Library</OutputType>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\Debug\</OutputPath>
+    <DebugSymbols>true</DebugSymbols>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="resources\_endpoint.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="resources\_endpoint.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.12" />
+    <PackageReference Include="M2MqttDotnetCore" Version="1.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <!-- <PackageReference Include="NJsonSchema" Version="10.0.23" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Asset.cs" />
+    <Resource Include="Resources\_endpoint.json" />
+  </ItemGroup>
+
+  <!--
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;C:\Program Files\Unity\Editor\Data\Mono\lib\mono\2.0\pdb2mdb.exe&quot; $(TargetPath)" />
+  </Target>
+-->
+
+</Project>

@@ -1,0 +1,47 @@
+{
+  "name": "properties",
+  "rev": "0.0.1",
+  "properties": {
+    "pose": {
+      "type": "string"
+    },
+    "age": {
+      "type": "integer"
+    },
+    "mathpi": {
+      "type": "number"
+    },
+    "truth": {
+      "type": "boolean"
+    },
+    "an_object": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "encaps_object": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "required": [ "x", "y" ]
+    }
+  }
+}

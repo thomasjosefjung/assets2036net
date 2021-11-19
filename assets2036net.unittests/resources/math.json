@@ -1,0 +1,30 @@
+{
+  "name": "math",
+  "rev": "1.0.0",
+  "operations": {
+    "square": {
+      "parameters": {
+        "x": { "type": "number" }
+      },
+      "response": {
+        "type": "number"
+      }
+    },
+    "sqrt": {
+      "parameters": {
+        "x": { "type": "number" }
+      },
+      "response": {
+        "type": "number"
+      }
+    },
+    "sin": {
+      "parameters": {
+        "x": { "type": "number" }
+      },
+      "response": {
+        "type": "number"
+      }
+    }
+  }
+}

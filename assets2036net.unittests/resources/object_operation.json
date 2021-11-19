@@ -1,0 +1,91 @@
+{
+  "name": "object_operation",
+  "rev": "0.0.1",
+  "operations": {
+    "splitstring": {
+      "parameters": {
+        "aaa": {
+          "type": "string"
+        }
+      },
+      "response": {
+        "type": "object",
+        "properties": {
+          "firstletter": {
+            "type": "string"
+          },
+          "lastletter": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "getfirstparam": {
+      "parameters": {
+        "tuple": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "string"
+            },
+            "second": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "response": {
+        "type": "string"
+      }
+    },
+    "getsumofelements": {
+      "parameters": {
+        "tuple": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "response": {
+        "type": "string"
+      }
+    },
+    "arrayoperation": {
+      "response": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "objectoperation": {
+      "response": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          },
+          "kids": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "age": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

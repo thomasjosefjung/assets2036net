@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "assets2036net", "assets2036net\assets2036net.csproj", "{58975136-FDC8-409E-A7B4-278AC7FF3283}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "assets2036net.unittests", "assets2036net.unittests\assets2036net.unittests.csproj", "{C1C00DC3-C76C-43C1-B162-8E999856E8B6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{FE846E30-4D95-479D-93EC-CDCCCD41E095}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimplePropertyAndOperation", "Examples\SimplePropertyAndOperation\SimplePropertyAndOperation.csproj", "{F5533894-04FE-4A17-B507-C508DCE4E5F4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23244541-56FA-4678-8C97-2453D529BC3C}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		.gitlab-ci.yml = .gitlab-ci.yml
+		CONTRIBUTING.md = CONTRIBUTING.md
+		LICENSE = LICENSE
+		NOTICE = NOTICE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{58975136-FDC8-409E-A7B4-278AC7FF3283}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58975136-FDC8-409E-A7B4-278AC7FF3283}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58975136-FDC8-409E-A7B4-278AC7FF3283}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58975136-FDC8-409E-A7B4-278AC7FF3283}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1C00DC3-C76C-43C1-B162-8E999856E8B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1C00DC3-C76C-43C1-B162-8E999856E8B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1C00DC3-C76C-43C1-B162-8E999856E8B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1C00DC3-C76C-43C1-B162-8E999856E8B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5533894-04FE-4A17-B507-C508DCE4E5F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5533894-04FE-4A17-B507-C508DCE4E5F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5533894-04FE-4A17-B507-C508DCE4E5F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5533894-04FE-4A17-B507-C508DCE4E5F4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F5533894-04FE-4A17-B507-C508DCE4E5F4} = {FE846E30-4D95-479D-93EC-CDCCCD41E095}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AE3B9609-9D91-47D5-A347-0E76A78A8B5C}
+	EndGlobalSection
+EndGlobal

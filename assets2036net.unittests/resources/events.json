@@ -1,0 +1,29 @@
+{
+  "name": "events",
+  "rev": "0.0.1",
+  "events": {
+    "anevent": {
+      "description":  "Hier steht, wann und warum dieser Event passiert.", 
+      "parameters": {
+        "aaa": {
+          "type": "string",
+          "description": "Der hat einen komisvhen Namen"
+        },
+        "bbb": {
+          "type": "string" 
+        },
+        "objectparameter": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "string" 
+            },
+            "second": {
+              "type": "string" 
+            }
+          }
+        }
+      }
+    }
+  }
+}
