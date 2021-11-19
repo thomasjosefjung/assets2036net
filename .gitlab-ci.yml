@@ -1,0 +1,28 @@
+stages: 
+  - build
+  - test
+
+build: 
+    stage: build
+    image: mcr.microsoft.com/dotnet/core/sdk
+    script: 
+        - "cd assets2036net"
+        - "dotnet --info"
+        - "dotnet restore"
+        - "dotnet build --configuration Debug"
+        - "dotnet build --configuration Release"
+    variables:
+        GIT_SSL_NO_VERIFY: 'true'
+    artifacts: 
+        paths: 
+            - "*/bin"
+
+test: 
+    stage: test
+    image: mcr.microsoft.com/dotnet/core/sdk
+    before_script:
+        - "cd assets2036net.unittests"
+    script:
+        - "dotnet test -v n"
+    variables:
+        GIT_SSL_NO_VERIFY: 'true'

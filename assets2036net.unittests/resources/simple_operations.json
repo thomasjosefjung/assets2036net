@@ -1,0 +1,33 @@
+{
+  "name": "simple_operations",
+  "rev": "0.0.1",
+  "operations": {
+    "do_it": {},
+    "addnumbers": {
+      "parameters": {
+        "aaa": {
+          "type": "number"
+        },
+        "bbb": {
+          "type": "number"
+        }
+      },
+      "response": {
+        "type": "number"
+      }
+    },
+    "concat": {
+      "parameters": {
+        "aaa": {
+          "type": "string"
+        },
+        "bbb": {
+          "type": "string"
+        }
+      },
+      "response": {
+        "type": "string"
+      }
+    }
+  }
+}
