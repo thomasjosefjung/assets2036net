@@ -55,7 +55,7 @@ namespace assets2036net.unittests
 
             try
             {
-                var submodelUrl = "https://raw.githubusercontent.com/boschresearch/assets2036-submodels/b7d7c1351b04a9f2e8c997abb9259a210ce6bde2/testmodel.json";
+                var submodelUrl = "https://raw.githubusercontent.com/boschresearch/assets2036-submodels/master/testmodel.json";
                 var asset = mgr.CreateAsset(@namespace, assetName, new Uri(submodelUrl));
 
                 var proxy = mgr.CreateFullAssetProxy(@namespace, assetName);

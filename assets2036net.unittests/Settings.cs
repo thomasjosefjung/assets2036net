@@ -11,8 +11,8 @@ namespace assets2036net.unittests
 {
     class Settings
     {
-        public static string BrokerHost = "broker.hivemq.com";
-        // public static string BrokerHost = "test.mosquitto.org";
+        // public static string BrokerHost = "broker.hivemq.com";
+        public static string BrokerHost = "test.mosquitto.org";
         // public static string BrokerHost = "192.168.100.3";
         public static int BrokerPort = 1883;
         public static string EndpointName = "assets2036net_tests"; 
@@ -33,7 +33,7 @@ namespace assets2036net.unittests
 
             //return new Uri(path);
 
-            return new Uri("https://arena2036-infrastructure.saz.bosch-si.com/arena2036_public/assets2036_submodels/raw/master/_endpoint.json");
+            return new Uri("https://raw.githubusercontent.com/boschresearch/assets2036-submodels/master/_endpoint.json");
         }
 
     }
