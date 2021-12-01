@@ -11,8 +11,8 @@ namespace assets2036net.unittests
 {
     class Settings
     {
-        // public static string BrokerHost = "broker.hivemq.com";
-        public static string BrokerHost = "test.mosquitto.org";
+        public static string BrokerHost = "broker.hivemq.com";
+        // public static string BrokerHost = "test.mosquitto.org";
         // public static string BrokerHost = "192.168.100.3";
         public static int BrokerPort = 1883;
         public static string EndpointName = "assets2036net_tests"; 
