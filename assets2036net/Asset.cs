@@ -10,8 +10,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using uPLibrary.Networking.M2Mqtt;
-using uPLibrary.Networking.M2Mqtt.Messages;
 
 namespace assets2036net
 {
@@ -153,16 +151,28 @@ namespace assets2036net
         }
 
 
-        internal void createSubscriptions()
+        internal ISet<string> getSubscriptions(Mode mode)
         {
+            var subscriptions = new HashSet<string>(); 
             foreach (var kvpSubmodel in _submodels)
             {
                 foreach (var kvpSme in kvpSubmodel.Value.Elements)
                 {
-                    kvpSme.Value.createSubscriptions(AssetMgr._mqttClient, Mode);
+                    subscriptions.UnionWith(kvpSme.Value.getSubscriptions(mode)); 
                 }
             }
+            return subscriptions; 
         }
+        //internal void createSubscriptions()
+        //{
+        //    foreach (var kvpSubmodel in _submodels)
+        //    {
+        //        foreach (var kvpSme in kvpSubmodel.Value.Elements)
+        //        {
+        //            kvpSme.Value.createSubscriptions(AssetMgr._mqttClient, Mode);
+        //        }
+        //    }
+        //}
 
         internal void publish(string topic, string text, bool retain)
         {

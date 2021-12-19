@@ -3,11 +3,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+using MQTTnet.Client;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Text;
-using uPLibrary.Networking.M2Mqtt;
 
 namespace assets2036net
 {
@@ -31,7 +29,9 @@ namespace assets2036net
 
         private static readonly log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
 
-        internal abstract void createSubscriptions(MqttClient mqttClient, Mode mode);
+        internal abstract ISet<string> getSubscriptions(Mode mode); 
+
+        //internal abstract void createSubscriptions(IMqttClient mqttClient, Mode mode);
 
         /// <summary>
         /// Topic of the submodel element. Used internally for MQTT communication. 

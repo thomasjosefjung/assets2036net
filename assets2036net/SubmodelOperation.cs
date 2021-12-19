@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using uPLibrary.Networking.M2Mqtt;
 
 namespace assets2036net
 {
@@ -219,24 +218,44 @@ namespace assets2036net
         private Mutex _mutex = new Mutex();
 
         private Dictionary<string, Parameter> _parameters;
-        internal override void createSubscriptions(MqttClient mqttClient, Mode mode)
+        //internal override void createSubscriptions(MqttClient mqttClient, Mode mode)
+        //{
+        //    if (mode == Mode.Consumer)
+        //    {
+        //        var topic = SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_RESP);
+        //        log.InfoFormat("{0} subscribes to {1}", Name, topic);
+        //        mqttClient.Subscribe(
+        //            new string[] { topic },
+        //            new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        //    }
+        //    else
+        //    {
+        //        var topic = SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_REQ);
+        //        log.InfoFormat("{0} subscribes to {1}", Name, topic);
+        //        mqttClient.Subscribe(
+        //            new string[] { topic },
+        //            new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        //    }
+        //}
+
+        internal override ISet<string> getSubscriptions(Mode mode)
         {
+            var subscriptions = new HashSet<string>();
+
+            var topic = ""; 
+
             if (mode == Mode.Consumer)
             {
-                var topic = SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_RESP);
+                subscriptions.Add(SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_RESP));
                 log.InfoFormat("{0} subscribes to {1}", Name, topic);
-                mqttClient.Subscribe(
-                    new string[] { topic },
-                    new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
             }
             else
             {
-                var topic = SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_REQ);
+                subscriptions.Add(SubmodelElement.buildTopic(Topic, StringConstants.StringConstant_REQ)); 
                 log.InfoFormat("{0} subscribes to {1}", Name, topic);
-                mqttClient.Subscribe(
-                    new string[] { topic },
-                    new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
             }
+
+            return subscriptions; 
         }
     }
 }

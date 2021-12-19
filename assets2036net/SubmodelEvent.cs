@@ -3,11 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+using MQTTnet.Client;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using uPLibrary.Networking.M2Mqtt;
 
 namespace assets2036net
 {
@@ -74,16 +73,30 @@ namespace assets2036net
             Emission?.Invoke(emission); 
         }
 
-        internal override void createSubscriptions(MqttClient mqttClient, Mode mode)
+        internal override ISet<string> getSubscriptions(Mode mode)
         {
             if (mode == Mode.Consumer)
             {
-                var topic = Topic;
-                log.InfoFormat("{0} subscribes to {1}", Name, topic);
-                mqttClient.Subscribe(
-                    new string[] { topic },
-                    new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+                return new HashSet<string>() { Topic }; 
+            }
+            else
+            {
+                return new HashSet<string>(); 
             }
         }
+
+        //internal override void createSubscriptions(IMqttClient mqttClient, Mode mode)
+        //{
+        //    if (mode == Mode.Consumer)
+        //    {
+        //        var topic = Topic;
+        //        log.InfoFormat("{0} subscribes to {1}", Name, topic);
+
+        //        // TODO
+        //        //mqttClient.Subscribe(
+        //        //    new string[] { topic },
+        //        //    new byte[] { uPLibrary.Networking.M2Mqtt.Messages.MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        //    }
+        //}
     }
 }

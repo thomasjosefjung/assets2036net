@@ -3,16 +3,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-using log4net;
-using log4net.Config;
+using MQTTnet;
+using MQTTnet.Client.Connecting;
+using MQTTnet.Client.Options;
+using MQTTnet.Client.Subscribing;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using uPLibrary.Networking.M2Mqtt;
-using uPLibrary.Networking.M2Mqtt.Messages;
 
 namespace assets2036net
 {
@@ -27,57 +25,61 @@ namespace assets2036net
         /// <param name="name">asset's name</param>
         public static void RemoveAssetTrace(string host, int port, string @namespace, string name)
         {
-            var client = new MqttClient(host, port, false, null, null, MqttSslProtocols.None);
-
-            try
+            var factory = new MqttFactory();
+            using (var mqttClient = factory.CreateMqttClient())
             {
                 DateTime latest = DateTime.Now;
 
-                string topic = string.Format("{0}/{1}/#", @namespace, name);
-
                 var topicsToDelete = new List<string>();
 
-                client.MqttMsgPublishReceived += (object sender, uPLibrary.Networking.M2Mqtt.Messages.MqttMsgPublishEventArgs e) =>
+                mqttClient.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs eventArgs) =>
                 {
-                    if (e.Message.Length > 0)
+                    if (eventArgs.ApplicationMessage.Retain)
                     {
-                        latest = DateTime.Now;
-                        if (e.Retain)
-                        {
-                            topicsToDelete.Add(e.Topic);
-                        }
+                        topicsToDelete.Add(eventArgs.ApplicationMessage.Topic);
+                    }
+
+                    return Task.CompletedTask;
+                }); 
+
+
+                mqttClient.ConnectedHandler = new GenericClientConnectedHandler()
+                {
+                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
+                    {
+                        var topics = new MqttClientSubscribeOptionsBuilder()
+                            .WithTopicFilter(new MqttTopicFilter()
+                            {
+                                Topic = string.Format("{0}/{1}/#", @namespace, name),
+                                QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
+                            });
+
+                        return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
                     }
                 };
 
-                client.Connect("assets2036net");
-                client.Subscribe(new string[] { topic }, new byte[] { 2 });
+                var options = new MqttClientOptionsBuilder()
+                    //.WithClientId(_mqttClientId)
+                    .WithTcpServer(host, port)
+                    .WithCleanSession();
 
-                while (DateTime.Now.Subtract(latest) <= TimeSpan.FromSeconds(1))
-                {
-                    System.Threading.Thread.Sleep(10);
-                }
+                mqttClient.ConnectAsync(options.Build(), CancellationToken.None).Wait();
 
-                ConcurrentDictionary<ushort, byte> ids = new ConcurrentDictionary<ushort, byte>();
+                Thread.Sleep(TimeSpan.FromSeconds(1));
 
-                client.MqttMsgPublished += (object sender, MqttMsgPublishedEventArgs e) => 
-                {
-                    byte value; 
-                    ids.TryRemove(e.MessageId, out value); 
-                };
-
+                List<Task> tasks = new List<Task>(); 
                 foreach (var t in topicsToDelete)
                 {
-                    ids.TryAdd(client.Publish(t, new byte[] { }, 2, true), 0);
+                    var mb = new MqttApplicationMessageBuilder()
+                        .WithTopic(t)
+                        .WithExactlyOnceQoS()
+                        .WithPayload(new byte[] { })
+                        .WithRetainFlag(); 
+
+                    tasks.Add(mqttClient.PublishAsync(mb.Build(), CancellationToken.None));
                 }
 
-                while (ids.Count > 0)
-                {
-                    System.Threading.Thread.Sleep(100); 
-                }
-            }
-            finally
-            {
-                client.Disconnect(); 
+                Task.WaitAll(tasks.ToArray()); 
             }
         }
 
@@ -91,52 +93,108 @@ namespace assets2036net
         /// <param name="rootTopic"></param>
         public static void CleanAllRetainedMessages(string broker, int port, string rootTopic)
         {
-            _broker = broker;
-            _port = port;
-            _rootTopic = rootTopic;
+            var factory = new MqttFactory(); 
 
-            _mqttClient = new MqttClient(broker, port, false, null, null, MqttSslProtocols.None);
-            _mqttClient.MqttMsgPublishReceived += _mqttClient_MqttMsgPublishReceived;
-
-            _mqttClient.Subscribe(new string[] { rootTopic+"/#" }, new byte[] { 2 });
-            _mqttClient.Connect(Guid.NewGuid().ToString());
-        }
-
-
-
-        private static void _mqttClient_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
-        {
-            if (e.Retain)
+            using (var client = factory.CreateMqttClient())
             {
-                log.Info("CLEAN: " + e.Topic);
-                bool sent = false; 
-                try
+                var tasks = new List<Task>();
+
+                client.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs e) =>
                 {
-                    while (!sent)
+                    if (e.ApplicationMessage.Retain)
                     {
-                        _mqttClient.Publish(e.Topic, new byte[0], 2, true);
-                        sent = true;
+                        tasks.Add(client.PublishAsync(
+                            new MqttApplicationMessageBuilder()
+                                .WithExactlyOnceQoS()
+                                .WithPayload(new byte[] { })
+                                .WithRetainFlag().Build(), 
+                            CancellationToken.None)); 
                     }
-                }
-                catch(Exception)
+
+                    return Task.CompletedTask; 
+                });
+
+                client.ConnectedHandler = new GenericClientConnectedHandler()
                 {
-                    _mqttClient.Disconnect();
+                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
+                    {
+                        return Task.Run(() =>
+                        {
+                            client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
+                                .WithTopicFilter(new MqttTopicFilter()
+                                {
+                                    Topic = rootTopic + "/#"
+                                }).Build(),
+                                CancellationToken.None);
+                        });
+                    }
+                };
 
-                    _mqttClient = new MqttClient(_broker, _port, false, null, null, MqttSslProtocols.None);
-                    _mqttClient.MqttMsgPublishReceived += _mqttClient_MqttMsgPublishReceived;
+                var options = new MqttClientOptionsBuilder()
+                    .WithTcpServer(broker, port)
+                    .WithCleanSession();
 
-                    _mqttClient.Subscribe(new string[] { _rootTopic+"/#" }, new byte[] { 2 });
-                    _mqttClient.Connect(Guid.NewGuid().ToString());
-                }
+                client.ConnectAsync(options.Build(), CancellationToken.None).Wait();
+
+                Task.WaitAll(tasks.ToArray()); 
             }
         }
 
+        ///// <summary>
+        ///// Helper method to clean all! retained messages matching the given root topic 
+        ///// from the broker (e.g. [mynamespace/myAsset]. Use with care!!! All retained 
+        ///// message at the topics mynamespace/myAsset/# will be reset. 
+        ///// </summary>
+        ///// <param name="broker">hostname of the MQTT broker</param>
+        ///// <param name="port">port of the MQTT Broker. Typical: 1883</param>
+        ///// <param name="rootTopic"></param>
+        //public static void CleanAllRetainedMessages(string broker, int port, string rootTopic)
+        //{
+        //    _broker = broker;
+        //    _port = port;
+        //    _rootTopic = rootTopic;
+
+        //    _mqttClient = new MqttClient(broker, port, false, null, null, MqttSslProtocols.None);
+        //    _mqttClient.MqttMsgPublishReceived += _mqttClient_MqttMsgPublishReceived;
+
+        //    _mqttClient.Subscribe(new string[] { rootTopic+"/#" }, new byte[] { 2 });
+        //    _mqttClient.Connect(Guid.NewGuid().ToString());
+        //}
+
+
+
+        //private static void _mqttClient_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
+        //{
+        //    if (e.Retain)
+        //    {
+        //        log.Info("CLEAN: " + e.Topic);
+        //        bool sent = false; 
+        //        try
+        //        {
+        //            while (!sent)
+        //            {
+        //                _mqttClient.Publish(e.Topic, new byte[0], 2, true);
+        //                sent = true;
+        //            }
+        //        }
+        //        catch(Exception)
+        //        {
+        //            _mqttClient.Disconnect();
+
+        //            _mqttClient = new MqttClient(_broker, _port, false, null, null, MqttSslProtocols.None);
+        //            _mqttClient.MqttMsgPublishReceived += _mqttClient_MqttMsgPublishReceived;
+
+        //            _mqttClient.Subscribe(new string[] { _rootTopic+"/#" }, new byte[] { 2 });
+        //            _mqttClient.Connect(Guid.NewGuid().ToString());
+        //        }
+        //    }
+        //}
+
         private static log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
 
-        private static string _broker;
-        private static int _port;
+        //private static string _broker;
+        //private static int _port;
 
-        private static MqttClient _mqttClient;
-        private static string _rootTopic;
+        //private static string _rootTopic;
     }
 }
