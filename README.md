@@ -44,15 +44,15 @@ SimplePropertyAndOperation.
 
 ### assets2036net library
 
-- log4net	2.0.12	Apache-2.0
+- log4net	2.0.13	Apache-2.0
 - MQTTNet	3.1.1	MIT 
 - Newtonsoft.Json	13.0.1	MIT
 		
 ### assets2036 unittests
-- Microsoft.NET.Test.Sdk	16.10.0	MIT 
+- Microsoft.NET.Test.Sdk	17.0.0	MIT 
 - xunit	2.4.1	MIT 
 - xunit.runner.visualstudio	2.4.3	MIT 
-- log4net	2.0.12	Apache-2.0
+- log4net	2.0.13	Apache-2.0
 
 
 ## Authors
