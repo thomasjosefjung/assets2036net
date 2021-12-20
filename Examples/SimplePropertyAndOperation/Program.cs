@@ -16,7 +16,7 @@ namespace Examples
             log4net.Config.BasicConfigurator.Configure(); 
 
             // Create an asset manager for the owner side: 
-            var mgrOwner = new assets2036net.AssetMgr("192.168.100.3", 1883, "arena2036", "example_asset");
+            var mgrOwner = new assets2036net.AssetMgr("broker.hivemq.com", 1883, "arena2036", "example_asset");
 
             // URLs to the Submodel descriptions we want to implement: 
             var urlSixAxisRobot = new Uri("https://raw.githubusercontent.com/boschresearch/assets2036-submodels/master/six-axis-robot.json");
@@ -113,7 +113,6 @@ namespace Examples
             }
 
             tOwner.Wait();
-            mgrOwner.Dispose(); 
         }
 
         static bool Terminate = false; 

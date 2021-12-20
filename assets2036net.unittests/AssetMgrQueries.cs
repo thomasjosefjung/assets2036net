@@ -3,8 +3,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+using MQTTnet;
+using MQTTnet.Client.Options;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,7 +19,7 @@ namespace assets2036net.unittests
 
         public AssetMgrQueries(ITestOutputHelper outp)
         {
-            log = outp; 
+            log = outp;
         }
 
         [Fact]
@@ -37,11 +40,11 @@ namespace assets2036net.unittests
         {
             var mgr = new assets2036net.AssetMgr(Settings.BrokerHost, Settings.BrokerPort, "arena2036", "Assets2036Aasx");
 
-            var submodels = mgr.GetSupportedSubmodels("arena2036", "SimCISS"); 
+            var submodels = mgr.GetSupportedSubmodels("arena2036", "SimCISS");
 
             foreach (var sm in submodels)
             {
-                log.WriteLine(string.Format("{0} from {1}", sm.Name, sm.SubmodelUrl)); 
+                log.WriteLine(string.Format("{0} from {1}", sm.Name, sm.SubmodelUrl));
             }
         }
 
@@ -49,7 +52,7 @@ namespace assets2036net.unittests
         public void RemoveAssetTrace()
         {
             var assetName = "WillBeDeleted";
-            var @namespace = "assets2036net"; 
+            var @namespace = "assets2036net";
 
             var mgr = new assets2036net.AssetMgr(Settings.BrokerHost, Settings.BrokerPort, @namespace, assetName);
 
@@ -68,33 +71,28 @@ namespace assets2036net.unittests
             }
             finally
             {
-                mgr.Dispose(); 
+                // mgr.Dispose();
             }
 
 
-            mgr = new assets2036net.AssetMgr(Settings.BrokerHost, Settings.BrokerPort, @namespace, assetName);
             Tools.RemoveAssetTrace(Settings.BrokerHost, Settings.BrokerPort, @namespace, assetName);
 
-            var client = new uPLibrary.Networking.M2Mqtt.MqttClient(Settings.BrokerHost, Settings.BrokerPort, false, null, null, uPLibrary.Networking.M2Mqtt.MqttSslProtocols.None);
+            mgr = new assets2036net.AssetMgr(Settings.BrokerHost, Settings.BrokerPort, @namespace, assetName);
 
-            try
+            var factory = new MqttFactory();
+            using (var mqttClient = factory.CreateMqttClient())
             {
-                client.Connect("assets2036net");
-
-                client.MqttMsgPublishReceived += (object sender, uPLibrary.Networking.M2Mqtt.Messages.MqttMsgPublishEventArgs e) =>
+                mqttClient.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs eventArgs) =>
                 {
-                    throw new Exception(string.Format("Received unexpected message on topic {0}", e.Topic));
-                };
+                    throw new Exception(string.Format("Received unexpected message on topic {0}", eventArgs.ApplicationMessage.Topic));
+                }); 
 
-                client.Subscribe(new string[] { string.Format("{0}/{1}/#", @namespace, assetName) }, new byte[] { 2 });
+                var options = new MqttClientOptionsBuilder()
+                    .WithTcpServer(Settings.BrokerHost, Settings.BrokerPort)
+                    .WithCleanSession();
 
-                Thread.Sleep(1000);
-            }
-            finally
-            {
-                client.Disconnect(); 
+                mqttClient.ConnectAsync(options.Build(), CancellationToken.None).Wait();
             }
         }
-
     }
 }
