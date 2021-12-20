@@ -629,7 +629,7 @@ namespace assets2036net
                         .WithRetainFlag(retain)
                         .Build();
 
-                    _mqttClient.PublishAsync(message).Wait();
+                    _mqttClient.PublishAsync(message); 
                 }
             }
             catch (Exception e)
