@@ -9,12 +9,10 @@ using MQTTnet.Client.Connecting;
 using MQTTnet.Client.Options;
 using MQTTnet.Client.Receiving;
 using MQTTnet.Client.Subscribing;
-using MQTTnet.Extensions.ManagedClient;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-//using uPLibrary.Networking.M2Mqtt;
 
 namespace assets2036net
 {
