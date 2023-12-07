@@ -5,9 +5,7 @@
 
 using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Client.Disconnecting;
-using MQTTnet.Client.Options;
-using MQTTnet.Client.Receiving;
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -32,7 +30,7 @@ namespace assets2036net
     /// AssetMgr will create Assets and AssetProxies for you. It holds the MQTT client, which is 
     /// used by all assets and assetProxies created via this. 
     /// </summary>
-    public partial class AssetMgr : IMqttClientDisconnectedHandler, IMqttApplicationMessageReceivedHandler
+    public partial class AssetMgr 
     {
         /// <summary>
         /// Event is emitted, when connection to MQTT broker is lost
@@ -577,8 +575,8 @@ namespace assets2036net
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
 
-            _mqttClient.DisconnectedHandler = this;
-            _mqttClient.ApplicationMessageReceivedHandler = this;
+            _mqttClient.ApplicationMessageReceivedAsync += this.HandleApplicationMessageReceivedAsync; 
+            _mqttClient.DisconnectedAsync += this.HandleDisconnectedAsync; 
 
             var messageBuilder = new MqttApplicationMessageBuilder();
 
@@ -586,18 +584,17 @@ namespace assets2036net
                 .WithClientId(_mqttClientId)
                 .WithTcpServer(BrokerHost, BrokerPort)
                 .WithCleanSession()
-                .WithWillMessage(
-                    messageBuilder
-                    .WithTopic(CommElementBase.BuildTopic(
+                .WithWillRetain(true)
+                .WithWillPayload(JsonSerializer.Serialize(false))
+                .WithWillTopic(CommElementBase.BuildTopic(
                         Namespace,
                         _endpointName,
                         StringConstants.SubmodelNameEnpoint,
                         StringConstants.PropertyNameOnline))
-                    .WithPayload(JsonSerializer.Serialize(false))
-                    .Build());
+                .Build();
 
             log.InfoFormat("{0} connects to {1}:{2}", _mqttClientId, BrokerHost, BrokerPort);
-            _mqttClient.ConnectAsync(options.Build(), CancellationToken.None).Wait(); 
+            _mqttClient.ConnectAsync(options, CancellationToken.None).Wait(); 
         }
 
         internal void Publish(string topic, string text, bool retain)
@@ -611,7 +608,7 @@ namespace assets2036net
                         var message = new MqttApplicationMessageBuilder()
                             .WithTopic(topic)
                             .WithPayload(text)
-                            .WithExactlyOnceQoS()
+                            .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
                             .WithRetainFlag(retain)
                             .Build();
 
@@ -621,7 +618,7 @@ namespace assets2036net
                     {
                         var message = new MqttApplicationMessageBuilder()
                             .WithTopic(topic)
-                            .WithExactlyOnceQoS()
+                            .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
                             .WithRetainFlag(retain)
                             .Build();
 
@@ -717,12 +714,12 @@ namespace assets2036net
 
                 int topicElementPointer = 2 + offset;
 
-                if (eventArgs.ApplicationMessage.Payload == null)
+                if (eventArgs.ApplicationMessage.PayloadSegment == null)
                 {
                     return; 
                 }
 
-                string message = System.Text.Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
+                string message = System.Text.Encoding.UTF8.GetString(eventArgs.ApplicationMessage.PayloadSegment.Array);
 
                 log.DebugFormat("AssetMgr {0} parsed message {1} @ {2}", assetName, message, eventArgs.ApplicationMessage.Topic);
 
