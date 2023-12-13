@@ -8,9 +8,9 @@
     <!--<TargetFramework>netcoreapp3.1</TargetFramework>-->
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>assets2036net</PackageId>
-    <Version>0.4.4</Version>
-    <AssemblyVersion>0.4.4</AssemblyVersion>
-    <FileVersion>0.4.4</FileVersion>
+    <Version>0.5.4</Version>
+    <AssemblyVersion>0.5.4</AssemblyVersion>
+    <FileVersion>0.5.4</FileVersion>
     <Authors>Thomas Jung</Authors>
     <Company>Robert Bosch GmbH</Company>
     <PackageTags>arena2036 assets2036 bosch mqtt aas vws asset administration verwaltungsschale lightweight</PackageTags>
@@ -21,10 +21,12 @@
 
   <PropertyGroup>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" />
+    <None Include="../LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" />
+    <None Include="../README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -45,18 +47,12 @@
 
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.13" />
-    <PackageReference Include="MQTTnet" Version="3.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NJsonSchema" Version="10.8.0" />
+    <PackageReference Include="MQTTnet" Version="4.3.2.930" />
+    <PackageReference Include="System.Text.Json" Version="7.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Resource Include="Asset.cs" />
-    <Resource Include="Resources\_endpoint.json" />
-  </ItemGroup>
-
-</Project>
+</Project> 

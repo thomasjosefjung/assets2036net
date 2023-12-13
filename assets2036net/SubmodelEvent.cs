@@ -2,22 +2,22 @@
 // see the NOTICE file and/or the repository github.com/boschresearch/assets2036net.
 //
 // SPDX-License-Identifier: Apache-2.0
-
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace assets2036net
 {
     /// <summary>
     /// The SubmodelElement representing an event. 
     /// </summary>
-    [JsonObject(MemberSerialization.OptIn)]
+    // [JsonObject(MemberSerialization.OptIn)]
     public class SubmodelEvent : SubmodelElement
     {
         // private readonly static log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
 
-        internal SubmodelEvent()
+        public SubmodelEvent()
         {
         }
 
@@ -26,14 +26,14 @@ namespace assets2036net
         /// <summary>
         /// The event parameters
         /// </summary>
-        [JsonProperty("parameters")]
+        [JsonPropertyName("parameters")]
         public Dictionary<string, Parameter> Parameters
         {
             get
             {
                 return _parameters; 
             }
-            internal set
+            set
             {
                 _parameters = value; 
                 foreach(var kvp in _parameters)
@@ -57,7 +57,7 @@ namespace assets2036net
 
             Asset.publish(
                 Topic,      
-                JsonConvert.SerializeObject(emission),
+                JsonSerializer.Serialize(emission, Tools.JsonSerializerOptions),
                 false);
         }
 

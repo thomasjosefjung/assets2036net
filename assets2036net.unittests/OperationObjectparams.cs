@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using Xunit;
 
@@ -24,11 +26,11 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/object_operation.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgrOwner = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
-            AssetMgr mgrConsumer = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgrOwner = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
+            using AssetMgr mgrConsumer = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgrOwner.CreateAsset(Settings.RootTopic, "OperationWithObjectType", uri);
-            Asset assetConsumer = mgrConsumer.CreateAssetProxy(Settings.RootTopic, "OperationWithObjectType", uri);
+            using Asset assetOwner = mgrOwner.CreateAsset(Settings.Namespace, "OperationWithObjectType", uri);
+            using Asset assetConsumer = mgrConsumer.CreateAssetProxy(Settings.Namespace, "OperationWithObjectType", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("object_operation").Operation("splitstring").Callback = this.callBackSplitString;
@@ -41,20 +43,19 @@ namespace assets2036net.unittests
                 TimeSpan.FromSeconds(5));
 
             // check result: 
-            JObject res = response as JObject;
 
             Assert.Equal(
                 "A",
-                res["first_letter"]);
+                response.GetReturnValueOrDefault<Dictionary<string, string>>()["first_letter"]); 
 
             Assert.Equal(
                 "Z",
-                res["last_letter"]);
+                response.GetReturnValueOrDefault<Dictionary<string, string>>()["last_letter"]); 
         }
 
         private SubmodelOperationResponse callBackSplitString(SubmodelOperationRequest req)
         {
-            string param = req.Parameters["aaa"] as string;
+            string param = ((JsonElement)req.Parameters["aaa"]).GetString();
             var result = new Dictionary<string, object>()
             {
                 {"first_letter", param.Substring(0,1)},
@@ -76,42 +77,50 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/object_operation.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "OperationWithObjectParameter", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "OperationWithObjectParameter", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "OperationWithObjectParameter", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "OperationWithObjectParameter", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("object_operation").Operation("getfirstparam").Callback = (SubmodelOperationRequest req) =>
             {
-                string result = (req.Parameters["tuple"] as JObject)["first"].ToString();
+                var person = req.GetParameterAs<Person>("papa"); 
 
                 var response = req.CreateResponseObj();
-                response.Value = result;
+                response.Value = person.age + person.kids[0].age;
                 return response;
             }; 
 
-            string testValue = "Eins"; 
+            int testValue1 = 99; 
+            int testValue2 = 199; 
 
             var response = assetConsumer.Submodel("object_operation").Operation("getfirstparam").Invoke(
-                new Dictionary<string, object>()
+                new Dictionary<string, object>
                 {
                     {
-                        "tuple",  new Dictionary<string, object>()
+                        "papa", 
+                        new Person
                         {
-                            {"first", testValue},
-                            {"second", "Zwei"}
+                            age = testValue1, 
+                            name = "Thomas", 
+                            kids = new List<Person>
+                            {
+                                new ()
+                                {
+                                    age = testValue2, name = "Karla"
+                                }
+                            }
                         }
                     }
-                }
-                ,
+                },
                 TimeSpan.FromSeconds(5));
 
             // check result: 
-            string res = response as string;
+            int res = response.GetReturnValueOrDefault<int>(); 
 
             Assert.Equal(
-                testValue,
+                testValue1+testValue2,
                 res);
         }
 
@@ -123,10 +132,10 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/object_operation.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "OperationWithObjectParameter", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "OperationWithObjectParameter", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "OperationWithObjectParameter", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "OperationWithObjectParameter", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("object_operation").Operation("objectoperation").Callback = (SubmodelOperationRequest req) =>
@@ -161,9 +170,11 @@ namespace assets2036net.unittests
                 new Dictionary<string, object>(), 
                 TimeSpan.FromSeconds(5));
 
-            // check result: 
-            JObject joPapa = response as JObject;
-            Person papa = joPapa.ToObject<Person>(); 
+            var papa = response.GetReturnValueOrDefault<Person>(); 
+
+            // // check result: 
+            // JObject joPapa = response as JObject;
+            // Person papa = joPapa.ToObject<Person>(); 
 
             Assert.Equal(
                 2, 
@@ -178,10 +189,10 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/object_operation.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "OperationWithArrayParameter", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "OperationWithArrayParameter", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "OperationWithArrayParameter", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "OperationWithArrayParameter", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("object_operation").Operation("getsumofelements").Callback = (SubmodelOperationRequest req) =>
@@ -190,9 +201,9 @@ namespace assets2036net.unittests
 
                 double sum = 0.0;
                 var values = req.Parameters["tuple"];
-                foreach (var d in values as JArray)
+                foreach (var d in ((JsonElement)values).EnumerateArray())
                 {
-                    sum += Convert.ToDouble(d);
+                    sum += ((JsonElement)d).GetDouble();
                 }
                 response.Value = sum;
                 return response;
@@ -208,7 +219,7 @@ namespace assets2036net.unittests
                 TimeSpan.FromSeconds(5));
 
             // check result: 
-            double res = Convert.ToDouble(response);
+            double res = response.GetReturnValueOrDefault<double>(); 
 
             Assert.Equal(
                 26.5,
@@ -223,10 +234,10 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/object_operation.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "OperationWithArrayReturnType", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "OperationWithArrayReturnType", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "OperationWithArrayReturnType", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "OperationWithArrayReturnType", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("object_operation").Operation("arrayoperation").Callback = (SubmodelOperationRequest req) =>
@@ -242,17 +253,11 @@ namespace assets2036net.unittests
             }; 
 
             var result = assetConsumer.Submodel("object_operation").Operation("arrayoperation").Invoke(new Dictionary<string, object>());
-            double[] native = ((JArray)result).ToObject<double[]>();
 
-            Assert.Equal(5, native.Length);
-            Assert.Equal(2.0, native[2]);
+            Assert.Equal(5, result.GetReturnValueOrDefault<double[]>().Length);
+            Assert.Equal(2.0, result.GetReturnValueOrDefault<double[]>()[2]); 
         }
 
-        class Person
-        {
-            public int age;
-            public string name;
-            public List<Person> kids; 
-        };
+
     }
 }

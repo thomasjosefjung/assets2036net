@@ -3,28 +3,27 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-using MQTTnet.Client;
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace assets2036net
 {
     /// <summary>
     /// Base class of all submodel elements (Property, Operation and Event) 
     /// </summary>
-    [JsonObject(MemberSerialization.OptIn)]
+    // [JsonObject(MemberSerialization.OptIn)]
     public abstract class SubmodelElement : CommElementBase
     {
         /// <summary>
         /// Name of the submodel element
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// description of the submodel element
         /// </summary>
-        [JsonProperty("description")]
+        [JsonPropertyName("description")]
         public string Description { get; set; }
 
         private static readonly log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
@@ -33,14 +32,21 @@ namespace assets2036net
 
         //internal abstract void createSubscriptions(IMqttClient mqttClient, Mode mode);
 
+        private string _topic = null; 
         /// <summary>
         /// Topic of the submodel element. Used internally for MQTT communication. 
         /// </summary>
+        [JsonIgnore]
         public string Topic
         {
             get
             {
-                return BuildTopic(Asset.Namespace, Asset.Name, Submodel.Name, Name);
+                if (_topic == null)
+                {
+                    _topic = BuildTopic(Asset.Namespace, Asset.Name, Submodel.Name, Name);
+                }
+
+                return _topic; 
             }
         }
     }

@@ -3,10 +3,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace assets2036net
 {
@@ -22,7 +23,6 @@ namespace assets2036net
     /// Listen to the event <seealso cref="ValueModified"/> on the proxy side to get informed, if 
     /// the property valued changes. 
     /// </summary>
-    [JsonObject(MemberSerialization.OptIn)]
     public class SubmodelProperty : SubmodelElement
     {
         /// <summary>
@@ -45,8 +45,8 @@ namespace assets2036net
         /// <summary>
         /// The property's datatype. <seealso cref="ValueType"/>
         /// </summary>
-        [JsonProperty("type")]
-        public ValueType Type { get; set; }
+        [JsonPropertyName("type")]
+        public string Type { get; set; }
 
         internal void updateLocalValue(object newValue)
         {
@@ -67,7 +67,7 @@ namespace assets2036net
         /// When implementing an asset consumer, use Value to grab the current value or alternatively 
         /// subscribe to the event <seealso cref="HandleValueModified"/> and get informed, if the 
         /// remote value changes. 
-        /// Because the value is encapsulated in a Newtonsoft JToken, you have to transform it into 
+        /// Because the value is encapsulated in a System.Text.Json.JsonElement, you have to transform it into 
         /// the native C#-type you expect. You can use the methods 
         /// <list type="bullet">
         /// <item><seealso cref="ValueBool"/></item>
@@ -77,11 +77,17 @@ namespace assets2036net
         /// <item><seealso cref="ValueString"/></item>
         /// </list>
         /// </summary>
-        /// If you expect some special object or array type, use <seealso cref="GetValueAs{T}"/>. 
+        /// If you expect some special object or array type, use <seealso cref="ValueAs{T}"/>. 
+        [JsonIgnore]
         public object Value
         {
             get
             {
+                if (Asset.Mode != Mode.Consumer)
+                {
+                    throw new Exception("You cannot read property values on an asset owner"); 
+                }
+
                 return _value;
             }
             set
@@ -91,15 +97,15 @@ namespace assets2036net
                     throw new Exception("You cannot set property values on an asset proxy"); 
                 }
 
-                if (value != _value)
-                {
+                // if (value != _value)
+                // {
                     _value = value;
 
                     if (Asset != null)
                     {
                         Publish();
                     }
-                }
+                // }
             }
         }
 
@@ -107,15 +113,31 @@ namespace assets2036net
 
         private static readonly log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
 
+        /// <summary>
+        /// removes from broker by resetting the retained message. 
+        /// </summary>
+        /// <returns></returns>
+        public void RemoveFromBroker()
+        {
+            if (Asset.Initialized())
+            {
+                AssetMgr.Publish(Topic, null, true); 
+            }
+        }
+
         internal void Publish()
         {
             if (Asset.Initialized())
             {
-                // compare serialized values to check if publish
-                string json = JsonConvert.SerializeObject(_value);
+                string json = null; 
+
+                json = JsonSerializer.Serialize(
+                    _value, 
+                    Tools.JsonSerializerOptions);
+
                 if (json != _latestPublishedValueJson)
                 {
-                    Asset.publish(Topic, JsonConvert.SerializeObject(_value), true);
+                    AssetMgr.Publish(Topic, json, true); 
                     _latestPublishedValueJson = json;
                 }
             }
@@ -124,74 +146,116 @@ namespace assets2036net
         /// <summary>
         /// returns the current property value as string
         /// </summary>
+        [JsonIgnore]
         public string ValueString
         {
             get
             {
-                return Convert.ToString(Value);
+                if (Value == null)
+                {
+                    return null; 
+                }
+                else
+                {
+                    return ((JsonElement)Value).GetString(); 
+                }
             }
         }
         /// <summary>
         /// returns the current property value as int
         /// </summary>
+        [JsonIgnore]
         public int ValueInt
         {
             get
             {
-                return Convert.ToInt32(Value);
+                if (Value == null)
+                {
+                    return (int)0; 
+                }
+                else
+                {
+                    return (int)((JsonElement)Value).GetInt32(); 
+                }
             }
         }
         /// <summary>
         /// returns the current property value as double
         /// </summary>
+        [JsonIgnore]
         public double ValueDouble
         {
             get
             {
-                return Convert.ToDouble(Value);
+                if (Value == null)
+                {
+                    return 0.0f; 
+                }
+                else
+                {
+                    return (double)((JsonElement)Value).GetDouble(); 
+                }
             }
         }
         /// <summary>
         /// returns the current property value as float
         /// </summary>
+        [JsonIgnore]
         public float ValueFloat
         {
             get
             {
-                return Convert.ToSingle(Value);
+                if (Value == null)
+                {
+                    return 0.0f; 
+                }
+                else
+                {
+                    return (float)((JsonElement)Value).GetDouble(); 
+                }
             }
         }
 
         /// <summary>
         /// returns the current property value as boolean
         /// </summary>
+        [JsonIgnore]
         public bool ValueBool
         {
             get
             {
-                return Convert.ToBoolean(Value);
+                if (Value == null)
+                {
+                    return false; 
+                }
+                else 
+                {
+                    return ((JsonElement)Value).GetBoolean(); 
+                }
             }
         }
 
         /// <summary>
         /// returns the current property value as generic type T. 
-        /// Implemented as JsonConvert.PopulateObject(ValueObject.ToString(), result);
+        /// implemented: JsonSerializer.Deserialize<T>(JsonSerializer.ValueObject.ToString()); 
         /// </summary>
-        public T GetValueAs<T>() where T : new()
+        public T ValueAs<T>() where T : new()
         {
-            T result = new T();
-            JsonConvert.PopulateObject(ValueObject.ToString(), result);
-            return result;
+            return ((JsonElement)Value).Deserialize<T>(
+                Tools.JsonSerializerOptions
+            ); 
         }
 
         /// <summary>
-        /// returns the current property value as <seealso cref="JObject"/>
+        /// returns the current property value as Dictionary<string, object>
         /// </summary>
-        public JObject ValueObject
+        [JsonIgnore]
+        public Dictionary<string, object> ValueObject
         {
             get
             {
-                return Value as JObject;
+                return JsonSerializer.Deserialize<Dictionary<string, object>>(
+                    JsonSerializer.Serialize(Value)); 
             }
         }
 

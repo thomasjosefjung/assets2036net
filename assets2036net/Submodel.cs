@@ -3,12 +3,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
+using System.Text.Json.Serialization;
 
 namespace assets2036net
 {
@@ -18,13 +15,12 @@ namespace assets2036net
     /// This submodel is used for serialization but also for accessing implementations, 
     /// both when accessing a remote asset via proxy and during the implementation of a local asset. 
     /// </summary>
-    [JsonObject(MemberSerialization.OptIn)]
     public class Submodel
     {
         /// <summary>
         /// The submodel's name. Used as third part in the mqtt topic structure. 
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name
         {
             get; set;
@@ -33,7 +29,7 @@ namespace assets2036net
         /// <summary>
         /// The submodel's revision number
         /// </summary>
-        [JsonProperty("rev")]
+        [JsonPropertyName("revision")]
         public string Revision
         {
             get; set;
@@ -48,6 +44,7 @@ namespace assets2036net
             get; internal set;
         }
 
+        [JsonIgnore]
         public SubmodelProperty MetaProperty
         {
             get
@@ -59,6 +56,7 @@ namespace assets2036net
         /// <summary>
         /// Convinience method to get the Submodel meta-Property 
         /// </summary>
+        [JsonIgnore]
         public MetaPropertyValue MetaPropertyValue
         {
             get
@@ -67,26 +65,28 @@ namespace assets2036net
                 if (p == null)
                     return null;
 
-                var mpv = p.GetValueAs<MetaPropertyValue>();
+                var mpv = p.ValueAs<MetaPropertyValue>();
                 return mpv; 
             }
         }
 
 
-        internal Submodel()
+        public Submodel()
         {
             _properties = new Dictionary<string, SubmodelProperty>();
             _operations = new Dictionary<string, SubmodelOperation>();
             _events = new Dictionary<string, SubmodelEvent>();
+
         }
 
         // JObject repr. of the schema
-        internal JObject _schema;
+        // internal JObject _schema;
 
         /// <summary>
         /// Convinience method to get one container with all submodel elements. The container is copy, 
         /// its elements are references to the actual elements. 
         /// </summary>
+        [JsonIgnore]
         public Dictionary<string, SubmodelElement> Elements
         {
             get
@@ -123,10 +123,22 @@ namespace assets2036net
             return p; 
         }
 
+        /// <summary>
+        /// removes all properties from broker by resetting the retained messages. 
+        /// </summary>
+        /// <returns></returns>
+        public void RemovePropertiesFromBroker()
+        {
+            foreach(var p in Properties.Values)
+            {
+                p.RemoveFromBroker(); 
+            }
+        }
+
         private Dictionary<string, SubmodelProperty> _properties;
 
-        [JsonProperty("properties")]
-        internal Dictionary<string, SubmodelProperty> Properties
+        [JsonPropertyName("properties")]
+        public Dictionary<string, SubmodelProperty> Properties
         {
             get
             {
@@ -156,8 +168,8 @@ namespace assets2036net
         }
 
         private Dictionary<string, SubmodelOperation> _operations;
-        [JsonProperty("operations")]
-        internal Dictionary<string, SubmodelOperation> Operations
+        [JsonPropertyName("operations")]
+        public Dictionary<string, SubmodelOperation> Operations
         {
             get
             {
@@ -185,8 +197,8 @@ namespace assets2036net
         }
         internal Dictionary<string, SubmodelEvent> _events;
 
-        [JsonProperty("events")]
-        internal Dictionary<string, SubmodelEvent> Events
+        [JsonPropertyName("events")]
+        public Dictionary<string, SubmodelEvent> Events
         {
             get
             {
@@ -281,19 +293,19 @@ namespace assets2036net
         /// <summary>
         /// source is the asset providing this submodel
         /// </summary>
-        [JsonProperty(StringConstants.PropertyNameMetaSource)]
+        [JsonPropertyName(StringConstants.PropertyNameMetaSource)]
         public string Source { get; set; }
 
         /// <summary>
         /// the URL from where the submodel definition was originally read
         /// </summary>
-        [JsonProperty(StringConstants.PropertyNameMetaSubmodelUrl)]
+        [JsonPropertyName(StringConstants.PropertyNameMetaSubmodelUrl)]
         public string Url { get; set; }
 
         /// <summary>
         /// the complete submodel definition
         /// </summary>
-        [JsonProperty(StringConstants.PropertyNameMetaSubmodelSchema)]
+        [JsonPropertyName(StringConstants.PropertyNameMetaSubmodelSchema)]
         public Submodel SubmodelDefinition { get; set; }
     }
 

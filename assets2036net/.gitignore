@@ -1,4 +1,4 @@
-makefile
 bin/
 obj/
 *.sln
+nugetapikey.txt

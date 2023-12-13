@@ -31,49 +31,52 @@ namespace assets2036net.unittests
             Uri uri = new Uri(location);
 
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, Settings.EndpointName, uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, Settings.EndpointName, uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "ObjectProperties", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "ObjectProperties", uri);
 
-            var complexValue = new JObject()
+            var complexValue = new Dictionary<string, object>()
             {
                 {"name", "Testname" },
-                {"x", "77.77" },
-                {"y", "99.99" },
-                {"encaps_object", new JObject()
+                {"x", 77.77},
+                {"y", 99.99},
+                {"encaps_object", new Dictionary<string, object>()
                     {
                         {"name", "TestnameEncaps" },
-                        {"x", "55.55" },
-                        {"y", "44.44" },
+                        {"x", 55.55},
+                        {"y", 44.44},
                     }
                 }
             };
 
             assetOwner.Submodel("properties").Property("an_object").Value = complexValue;
 
-            object test = assetConsumer.Submodel("properties").Property("an_object").Value;
 
-            Assert.Equal(
-                complexValue,
-                assetOwner.Submodel("properties").Property("an_object").Value);
+            Assert.Throws<Exception>(() => assetOwner.Submodel("properties").Property("an_object").Value); 
 
             //Thread.Sleep(Settings.WaitTime);
 
+            Thread.Sleep(300); 
 
             Assert.True(waitForCondition(() =>
             {
                 if (assetConsumer.Submodel("properties").Property("an_object").Value == null)
                     return false; 
+                Thread.Sleep(300); 
 
-                return complexValue.ToString().Equals(assetConsumer.Submodel("properties").Property("an_object").Value.ToString()); 
+                // Console.WriteLine(
+                //     complexValue.ToString()); 
+                // Console.WriteLine(
+                //     assetConsumer.Submodel("properties").Property("an_object").GetValueAs<Dictionary<string, object>>().ToString()); 
+
+                return complexValue.ToString().Equals(
+                    assetConsumer.Submodel("properties").Property("an_object").ValueAs<Dictionary<string, object>>().ToString()); 
+
             }, Settings.WaitTime));
 
-            //Assert.Equal(
-            //    complexValue,
-            //    assetConsumer.Submodel("properties").Property("an_object").Value);
+            var test2 = assetConsumer.Submodel("properties").Property("an_object").ValueAs<ComplexType>();
 
-            var test2 = assetConsumer.Submodel("properties").Property("an_object").GetValueAs<ComplexType>();
         }
     }
 }

@@ -4,11 +4,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using MQTTnet;
-using MQTTnet.Client.Connecting;
-using MQTTnet.Client.Options;
-using MQTTnet.Client.Subscribing;
+using MQTTnet.Client;
+using MQTTnet.Packets;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,6 +17,11 @@ namespace assets2036net
 {
     public static class Tools
     {
+        public static JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        }; 
+
         /// <summary>
         /// Helper method to erase all retained messages produced by a specific asset. 
         /// </summary>
@@ -23,7 +29,7 @@ namespace assets2036net
         /// <param name="port">port of the MQTT broker (typical: 1883)</param>
         /// <param name="namespace">asset's namespace</param>
         /// <param name="name">asset's name</param>
-        public static void RemoveAssetTrace(string host, int port, string @namespace, string name)
+        public async static Task RemoveAssetTraceAsync(string host, int port, string @namespace, string name)
         {
             var factory = new MqttFactory();
             using (var mqttClient = factory.CreateMqttClient())
@@ -32,7 +38,7 @@ namespace assets2036net
 
                 var topicsToDelete = new List<string>();
 
-                mqttClient.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs eventArgs) =>
+                mqttClient.ApplicationMessageReceivedAsync += (MqttApplicationMessageReceivedEventArgs eventArgs) => 
                 {
                     if (eventArgs.ApplicationMessage.Retain)
                     {
@@ -40,22 +46,19 @@ namespace assets2036net
                     }
 
                     return Task.CompletedTask;
-                }); 
+                }; 
 
 
-                mqttClient.ConnectedHandler = new GenericClientConnectedHandler()
+                mqttClient.ConnectedAsync += (MqttClientConnectedEventArgs evtArgs) => 
                 {
-                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
-                    {
-                        var topics = new MqttClientSubscribeOptionsBuilder()
-                            .WithTopicFilter(new MqttTopicFilter()
-                            {
-                                Topic = string.Format("{0}/{1}/#", @namespace, name),
-                                QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
-                            });
+                    var topics = new MqttClientSubscribeOptionsBuilder()
+                        .WithTopicFilter(new MqttTopicFilter()
+                        {
+                            Topic = string.Format("{0}/{1}/#", @namespace, name),
+                            QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
+                        });
 
-                        return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
-                    }
+                    return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
                 };
 
                 var options = new MqttClientOptionsBuilder()
@@ -63,18 +66,20 @@ namespace assets2036net
                     .WithTcpServer(host, port)
                     .WithCleanSession();
 
-                mqttClient.ConnectAsync(options.Build(), CancellationToken.None).Wait();
+                var taskConnect = await mqttClient.ConnectAsync(options.Build(), CancellationToken.None); 
 
-                Thread.Sleep(TimeSpan.FromSeconds(1));
+                await Task.Delay(TimeSpan.FromSeconds(2)); 
 
                 List<Task> tasks = new List<Task>(); 
                 foreach (var t in topicsToDelete)
                 {
                     var mb = new MqttApplicationMessageBuilder()
                         .WithTopic(t)
-                        .WithExactlyOnceQoS()
+                        .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
                         .WithPayload(new byte[] { })
                         .WithRetainFlag(); 
+
+                    Console.WriteLine(t); 
 
                     tasks.Add(mqttClient.PublishAsync(mb.Build(), CancellationToken.None));
                 }
@@ -99,35 +104,32 @@ namespace assets2036net
             {
                 var tasks = new List<Task>();
 
-                client.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs e) =>
+                client.ApplicationMessageReceivedAsync += (MqttApplicationMessageReceivedEventArgs e) => 
                 {
                     if (e.ApplicationMessage.Retain)
                     {
                         tasks.Add(client.PublishAsync(
                             new MqttApplicationMessageBuilder()
-                                .WithExactlyOnceQoS()
+                                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
                                 .WithPayload(new byte[] { })
                                 .WithRetainFlag().Build(), 
                             CancellationToken.None)); 
                     }
 
                     return Task.CompletedTask; 
-                });
+                };
 
-                client.ConnectedHandler = new GenericClientConnectedHandler()
+                client.ConnectedAsync += (MqttClientConnectedEventArgs evtArgs) => 
                 {
-                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
+                    return Task.Run(() =>
                     {
-                        return Task.Run(() =>
-                        {
-                            client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
-                                .WithTopicFilter(new MqttTopicFilter()
-                                {
-                                    Topic = rootTopic + "/#"
-                                }).Build(),
-                                CancellationToken.None);
-                        });
-                    }
+                        client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
+                            .WithTopicFilter(new MqttTopicFilter()
+                            {
+                                Topic = rootTopic + "/#"
+                            }).Build(),
+                            CancellationToken.None);
+                    });
                 };
 
                 var options = new MqttClientOptionsBuilder()

@@ -75,6 +75,7 @@ namespace assets2036net
             }
             set
             {
+                this._asset.AssetMgr.HealthyCallback = null; 
                 _asset.Submodel(StringConstants.SubmodelNameEnpoint).Property(StringConstants.PropertyNameHealthy).Value = value;
             }
         }
@@ -82,8 +83,8 @@ namespace assets2036net
         internal AssetEndpoint(Asset asset)
         {
             _asset = asset;
-            _asset.Submodel(
-                StringConstants.SubmodelNameEnpoint).Operation(StringConstants.OperationNamePing).Callback = this.ping; 
+            // _asset.Submodel(
+            //     StringConstants.SubmodelNameEnpoint).Operation(StringConstants.OperationNamePing).Callback = this.ping; 
         }
 
         internal SubmodelOperationResponse ping(SubmodelOperationRequest req)

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using Xunit;
 
@@ -29,10 +30,10 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/simple_operations.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "CallSimpleOperation", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "CallSimpleOperation", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "CallSimpleOperation", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "CallSimpleOperation", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("simple_operations").Operation("do_it").Callback = this.callBackDoIt;
@@ -64,10 +65,10 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/simple_operations.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgr = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetOwner = mgr.CreateAsset(Settings.RootTopic, "CallOperationWithParameters", uri);
-            Asset assetConsumer = mgr.CreateAssetProxy(Settings.RootTopic, "CallOperationWithParameters", uri);
+            using Asset assetOwner = mgr.CreateAsset(Settings.Namespace, "CallOperationWithParameters", uri);
+            using Asset assetConsumer = mgr.CreateAssetProxy(Settings.Namespace, "CallOperationWithParameters", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("simple_operations").Operation("addnumbers").Callback = this.callBackAdd;
@@ -82,13 +83,16 @@ namespace assets2036net.unittests
             // check result: 
             Assert.Equal(
                 2.5 + 7.7,
-                Convert.ToDouble(response));
+                response.GetReturnValueOrDefault<double>()); 
         }
 
         private SubmodelOperationResponse callBackAdd(SubmodelOperationRequest req)
         {
-            double num1 = Convert.ToDouble(req.Parameters["aaa"]);
-            double num2 = Convert.ToDouble(req.Parameters["bbb"]);
+            // double num1 = Convert.ToDouble(req.Parameters["aaa"]);
+            // double num2 = Convert.ToDouble(req.Parameters["bbb"]);
+
+            double num1 = ((JsonElement)req.Parameters["aaa"]).GetDouble(); 
+            double num2 = ((JsonElement)req.Parameters["bbb"]).GetDouble(); 
 
             var response = req.CreateResponseObj();
             response.Value = num1 + num2;

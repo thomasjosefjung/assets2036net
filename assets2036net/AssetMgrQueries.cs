@@ -5,57 +5,19 @@
 
 //using System;
 using MQTTnet;
-using MQTTnet.Client.Connecting;
-using MQTTnet.Client.Options;
-using MQTTnet.Client.Receiving;
-using MQTTnet.Client.Subscribing;
+using MQTTnet.Client;
+using MQTTnet.Packets;
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace assets2036net
 {
-    public class GenericApplicationMessageHandler : IMqttApplicationMessageReceivedHandler
-    {
-        public GenericApplicationMessageHandler(Handler a)
-        {
-            TheHandler = a;
-        }
-
-        public delegate Task Handler(MqttApplicationMessageReceivedEventArgs eventArgs);
-
-        public Handler TheHandler;
-
-        public Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs eventArgs)
-        {
-            if (this.TheHandler != null)
-            {
-                return this.TheHandler(eventArgs);
-            }
-
-            return Task.CompletedTask;
-        }
-    }
-
-    class GenericClientConnectedHandler : IMqttClientConnectedHandler
-    {
-        public delegate Task Handler(MqttClientConnectedEventArgs eventArgs);
-
-        public Handler TheHandler;
-
-        public Task HandleConnectedAsync(MqttClientConnectedEventArgs eventArgs)
-        {
-            if (this.TheHandler != null)
-            {
-                return this.TheHandler(eventArgs);
-            }
-
-            return Task.CompletedTask;
-        }
-    }
-
-    public partial class AssetMgr
+    public partial class AssetMgr : IDisposable
     {
         public List<Submodel> GetSupportedSubmodels(string @namespace, string name)
         {
@@ -67,13 +29,16 @@ namespace assets2036net
             {
                 DateTime latest = DateTime.Now;
 
-                mqttClient.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs eventArgs) =>
+                mqttClient.ApplicationMessageReceivedAsync += (MqttApplicationMessageReceivedEventArgs eventArgs) => 
                 {
                     latest = DateTime.Now;
                     var topic = eventArgs.ApplicationMessage.Topic;
 
-                    string message = System.Text.Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
-                    var metaTag = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
+                    string message = System.Text.Encoding.UTF8.GetString(eventArgs.ApplicationMessage.PayloadSegment.Array);
+
+                    var metaTag = System.Text.Json.JsonSerializer.Deserialize<MetaPropertyValue>(
+                        message, 
+                        Tools.JsonSerializerOptions);
 
                     if (metaTag == null)
                     {
@@ -82,15 +47,17 @@ namespace assets2036net
 
                     try
                     {
-                        if (!metaTag.TryGetValue(StringConstants.PropertyNameMetaSubmodelSchema, out object oSchema))
+                        if (metaTag.SubmodelDefinition == null)
+                        // if (!metaTag.TryGetValue(StringConstants.PropertyNameMetaSubmodelSchema, out object oSchema))
                         {
                             return Task.CompletedTask;
                         }
 
-                        var stringSchema = Newtonsoft.Json.JsonConvert.SerializeObject(oSchema);
-                        var schema = Newtonsoft.Json.JsonConvert.DeserializeObject<Submodel>(stringSchema);
-                        schema.SubmodelUrl = metaTag["submodel_url"] as string;
-                        submodels.Add(schema.Name, schema);
+                        var stringSchema = JsonSerializer.Serialize(
+                            metaTag.SubmodelDefinition, 
+                            Tools.JsonSerializerOptions);
+
+                        submodels.Add(metaTag.SubmodelDefinition.Name, metaTag.SubmodelDefinition);
                     }
                     catch (Exception exc)
                     {
@@ -99,21 +66,18 @@ namespace assets2036net
 
 
                     return Task.CompletedTask;
-                });
+                }; 
 
-                mqttClient.ConnectedHandler = new GenericClientConnectedHandler()
+                mqttClient.ConnectedAsync += (MqttClientConnectedEventArgs evtArgs) => 
                 {
-                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
-                    {
-                        var topics = new MqttClientSubscribeOptionsBuilder()
-                            .WithTopicFilter(new MqttTopicFilter()
-                            {
-                                Topic = string.Format("{0}/{1}/+/_meta", @namespace, name),
-                                QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
-                            });
+                    var topics = new MqttClientSubscribeOptionsBuilder()
+                        .WithTopicFilter(new MqttTopicFilter()
+                        {
+                            Topic = string.Format("{0}/{1}/+/_meta", @namespace, name),
+                            QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
+                        });
 
-                        return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
-                    }
+                    return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
                 };
 
                 var options = new MqttClientOptionsBuilder()
@@ -143,7 +107,7 @@ namespace assets2036net
             using (var mqttClient = factory.CreateMqttClient())
             {
 
-                mqttClient.ApplicationMessageReceivedHandler = new GenericApplicationMessageHandler((MqttApplicationMessageReceivedEventArgs eventArgs) =>
+                mqttClient.ApplicationMessageReceivedAsync += (MqttApplicationMessageReceivedEventArgs eventArgs) => 
                 {
                     latest = DateTime.Now;
 
@@ -163,21 +127,18 @@ namespace assets2036net
                     }
 
                     return Task.CompletedTask;
-                });
+                };
 
-                mqttClient.ConnectedHandler = new GenericClientConnectedHandler()
+                mqttClient.ConnectedAsync += (MqttClientConnectedEventArgs evtArgs) => 
                 {
-                    TheHandler = (MqttClientConnectedEventArgs eventArgs) =>
-                    {
-                        var topics = new MqttClientSubscribeOptionsBuilder()
-                            .WithTopicFilter(new MqttTopicFilter()
-                            {
-                                Topic = "+/+/+/_meta",
-                                QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
-                            });
+                    var topics = new MqttClientSubscribeOptionsBuilder()
+                        .WithTopicFilter(new MqttTopicFilter()
+                        {
+                            Topic = "+/+/+/_meta",
+                            QualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce
+                        });
 
-                        return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
-                    }
+                    return mqttClient.SubscribeAsync(topics.Build(), CancellationToken.None);
                 };
 
                 var options = new MqttClientOptionsBuilder()

@@ -3,10 +3,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace assets2036net
 {
@@ -16,24 +18,18 @@ namespace assets2036net
     /// or submodel, all parameters to an operation will be encapsulated inside an instance of 
     /// SubmodelOperationRequest. 
     /// </summary>
-    [JsonObject(MemberSerialization.OptIn)] 
-    public class SubmodelOperationRequest : CommElementBase
+    public class SubmodelOperationRequest : ParameterizedMessage
     {
         /// <summary>
         /// The unique request id for an operation call. Used to map request and answer on the client side. 
         /// </summary>
-        [JsonProperty("req_id")]
+        [JsonPropertyName("req_id")]
         public string RequestId { get; set; }
-
-        /// <summary>
-        /// a dictionary containig the request's corresponding parameters. 
-        /// </summary>
-        [JsonProperty("params")]
-        public Dictionary<string, object> Parameters { get; set; }
 
         /// <summary>
         /// Referehnce to the submodel operation which will be used to handle this request. 
         /// </summary>
+        [JsonIgnore]
         public SubmodelOperation Operation { get; set; }
 
         /// <summary>
@@ -59,7 +55,7 @@ namespace assets2036net
 
         private readonly static log4net.ILog log = Config.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.FullName);
 
-        internal SubmodelOperationRequest()
+        public SubmodelOperationRequest()
         {
             Parameters = new Dictionary<string, object>(); 
         }
@@ -72,77 +68,76 @@ namespace assets2036net
             Parameters = new Dictionary<string, object>();
         }
 
-        public T ParameterValueOrDefault<T>(string parameterKey, T defaultValue = default)
+        public T GetParameterAs<T>(string paramName) where T : class
         {
-            if (!Parameters.ContainsKey(parameterKey))
+            if (!Parameters.ContainsKey(paramName))
             {
-                return defaultValue; 
+                log.Warn($"paramater named {paramName} not found - returning null value"); 
+                return null; 
             }
-
-            var value = Parameters[parameterKey]; 
 
             try
             {
-                var res = (T)Convert.ChangeType(value, typeof(T));
-                return res; 
+                return ((JsonElement)Parameters[paramName]).Deserialize<T>(); 
             }
-            catch (Exception)
+            catch
             {
-                return defaultValue; 
+                log.Warn($"deserialization of paramater named {paramName} failed - returning null value"); 
+                return null; 
             }
         }
 
-        public List<string> ValidateParameters(Dictionary<string, Type> parameters)
-        {
-            List<string> result = new List<string>(); 
+        // public List<string> ValidateParameters(Dictionary<string, Type> parameters)
+        // {
+        //     List<string> result = new List<string>(); 
 
-            foreach(var kvp in parameters)
-            {
-                if (!Parameters.ContainsKey(kvp.Key))
-                {
-                    result.Add(kvp.Key);
-                    continue; 
-                }
+        //     foreach(var kvp in parameters)
+        //     {
+        //         if (!Parameters.ContainsKey(kvp.Key))
+        //         {
+        //             result.Add(kvp.Key);
+        //             continue; 
+        //         }
 
-                var value = Parameters[kvp.Key]; 
+        //         var value = Parameters[kvp.Key]; 
 
-                try
-                {
-                    var res = Convert.ChangeType(value, kvp.Value); 
-                }
-                catch (Exception)
-                {
-                    result.Add(kvp.Key); 
-                }
-            }
+        //         try
+        //         {
+        //             var res = Convert.ChangeType(value, kvp.Value); 
+        //         }
+        //         catch (Exception)
+        //         {
+        //             result.Add(kvp.Key); 
+        //         }
+        //     }
 
-            return result; 
-        }
+        //     return result; 
+        // }
 
 
-        public bool ValidateParameter<T>(string parameterKey)
-        {
-            if (!Parameters.ContainsKey(parameterKey))
-            {
-                return false; 
-            }
+        // public bool ValidateParameter<T>(string parameterKey)
+        // {
+        //     if (!Parameters.ContainsKey(parameterKey))
+        //     {
+        //         return false; 
+        //     }
 
-            var value = Parameters[parameterKey]; 
+        //     var value = Parameters[parameterKey]; 
 
-            try
-            {
-                var res = Convert.ChangeType(value, typeof(T)); 
-                return true; 
-            }
-            catch (Exception)
-            {
-                return false; 
-            }
-        }
+        //     try
+        //     {
+        //         var res = Convert.ChangeType(value, typeof(T)); 
+        //         return true; 
+        //     }
+        //     catch (Exception)
+        //     {
+        //         return false; 
+        //     }
+        // }
 
         internal void Publish()
         {
-            string message = JsonConvert.SerializeObject(this);
+            string message = JsonSerializer.Serialize(this,  Tools.JsonSerializerOptions);
 
             var topic = BuildTopic(Operation.Topic, StringConstants.StringConstant_REQ); 
             log.DebugFormat("Send: {0} @ {1}", message, topic);

@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using Xunit;
 
@@ -30,17 +31,17 @@ namespace assets2036net.unittests
             location = Path.Combine(location, "resources/math.json");
             Uri uri = new Uri(location);
 
-            AssetMgr mgrOwner = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
-            Asset assetOwner = mgrOwner.CreateAsset(Settings.RootTopic, "ConcurrentCustomers", uri);
+            using AssetMgr mgrOwner = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
+            using Asset assetOwner = mgrOwner.CreateAsset(Settings.Namespace, "ConcurrentCustomers", uri);
 
             // bind local operation to asset operation
             assetOwner.Submodel("math").Operation("square").Callback = this.square;
             assetOwner.Submodel("math").Operation("sqrt").Callback = this.sqrt;
             assetOwner.Submodel("math").Operation("sin").Callback = this.sin;
 
-            AssetMgr mgrConsumer = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.RootTopic, Settings.EndpointName);
+            using AssetMgr mgrConsumer = new AssetMgr(Settings.BrokerHost, Settings.BrokerPort, Settings.Namespace, Settings.EndpointName);
 
-            Asset assetConsumer1 = mgrConsumer.CreateAssetProxy(Settings.RootTopic, "ConcurrentCustomers", uri);
+            using Asset assetConsumer1 = mgrConsumer.CreateAssetProxy(Settings.Namespace, "ConcurrentCustomers", uri);
             //Asset assetConsumer2 = mgrConsumer.CreateAsset("ConcurrentCustomers", Mode.Consumer, uri);
             //Asset assetConsumer3 = mgrConsumer.CreateAsset("ConcurrentCustomers", Mode.Consumer, uri);
 
@@ -50,13 +51,15 @@ namespace assets2036net.unittests
             {
                 for (int i = 0; i < numberCalls; ++i)
                 {
-                    Assert.Equal(
-                        (double)i * i,
-                        assetConsumer1.Submodel("math").Operation("square").Invoke(new Dictionary<string, object>()
+                    var prod = assetConsumer1.Submodel("math").Operation("square").Invoke(new Dictionary<string, object>()
                         {
                             {"x", i }
                         }, 
-                        Settings.WaitTime));
+                        Settings.WaitTime); 
+
+                    Assert.Equal(
+                        (double)i * i,
+                        prod.GetReturnValueOrDefault<double>()); 
 
                     //Thread.Sleep(new Random().Next(0, 5));
                 }
@@ -67,13 +70,15 @@ namespace assets2036net.unittests
             {
                 for (int i = 0; i < numberCalls; ++i)
                 {
-                    Assert.Equal(
-                        (double)Math.Sqrt(i),
-                        assetConsumer1.Submodel("math").Operation("sqrt").Invoke(new Dictionary<string, object>()
+                    var sqrt = assetConsumer1.Submodel("math").Operation("sqrt").Invoke(new Dictionary<string, object>()
                         {
                             {"x", i }
                         }, 
-                        Settings.WaitTime));
+                        Settings.WaitTime).GetReturnValueOrDefault<double>(); 
+
+                    Assert.Equal(
+                        (double)Math.Sqrt(i),
+                        sqrt); 
 
                     //Thread.Sleep(new Random().Next(0, 5));
                 }
@@ -84,30 +89,36 @@ namespace assets2036net.unittests
             {
                 for (int i = numberCalls; i > 0; --i)
                 {
-                    Assert.Equal(
-                        (double)Math.Sqrt(i),
-                        assetConsumer1.Submodel("math").Operation("sqrt").Invoke(new Dictionary<string, object>()
+                    var sqrt = assetConsumer1.Submodel("math").Operation("sqrt").Invoke(new Dictionary<string, object>()
                         {
                             {"x", i }
-                        },
-                        Settings.WaitTime));
+                        }, 
+                        Settings.WaitTime).GetReturnValueOrDefault<double>(); 
 
-                    //Thread.Sleep(new Random().Next(0, 5));
+                    Assert.Equal(
+                        (double)Math.Sqrt(i),
+                        sqrt); 
+
+
+                    Thread.Sleep(new Random().Next(0, 5));
                 }
             });
             t22.Start();
 
             for (int i = numberCalls; i >= 1; --i)
             {
-                Assert.Equal(
-                    Math.Sin(i),
-                    assetConsumer1.Submodel("math").Operation("sin").Invoke(new Dictionary<string, object>()
-                    {
-                        {"x", i }
-                    },
-                    Settings.WaitTime));
+                    var sin = assetConsumer1.Submodel("math").Operation("sin").Invoke(new Dictionary<string, object>()
+                        {
+                            {"x", i }
+                        }, 
+                        Settings.WaitTime).GetReturnValueOrDefault<double>(); 
 
-                //Thread.Sleep(new Random().Next(0, 5));
+                    Assert.Equal(
+                        (double)Math.Sin(i),
+                        sin); 
+
+
+                Thread.Sleep(new Random().Next(0, 5));
             }
 
             t1.Join();
@@ -120,7 +131,7 @@ namespace assets2036net.unittests
 
         private SubmodelOperationResponse square(SubmodelOperationRequest req)
         {
-            double a = Convert.ToDouble(req.Parameters["x"]);
+            double a = ((JsonElement)(req.Parameters["x"])).GetDouble();
             var resp = req.CreateResponseObj();
             resp.Value = a * a;
 
@@ -128,7 +139,7 @@ namespace assets2036net.unittests
         }
         private SubmodelOperationResponse sqrt(SubmodelOperationRequest req)
         {
-            double a = Convert.ToDouble(req.Parameters["x"]);
+            double a = ((JsonElement)(req.Parameters["x"])).GetDouble();
             var resp = req.CreateResponseObj();
             resp.Value = Math.Sqrt(a);
 
@@ -136,7 +147,7 @@ namespace assets2036net.unittests
         }
         private SubmodelOperationResponse sin(SubmodelOperationRequest req)
         {
-            double a = Convert.ToDouble(req.Parameters["x"]);
+            double a = ((JsonElement)(req.Parameters["x"])).GetDouble();
             var resp = req.CreateResponseObj();
             resp.Value = Math.Sin(a);
 
