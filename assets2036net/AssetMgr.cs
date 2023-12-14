@@ -5,7 +5,6 @@
 
 using MQTTnet;
 using MQTTnet.Client;
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

@@ -36,7 +36,6 @@ impossible to strictly hide unneccessary aspects of the API from the developer.
 
 - log4net	2.0.13	Apache-2.0
 - MQTTNet	3.1.1	MIT 
-
 ### assets2036 unittests
 - Microsoft.NET.Test.Sdk	17.0.0	MIT 
 - xunit	2.4.1	MIT 

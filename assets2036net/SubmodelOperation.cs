@@ -157,13 +157,13 @@ namespace assets2036net
         /// timespan, TimeoutException is thrown</param>
         /// <returns>The task object representing the remote call, which will give you the return value
         /// if available</returns>
-        public Task StartInvoke(
+        public async Task InvokeAsync(
             Dictionary<string, object> parameters,
             Action<SubmodelOperationResponse> inCaseOfSuccess,
             Action inCaseOfFailure,
             TimeSpan timeout)
         {
-            return Task.Run(() =>
+            await Task.Run(() =>
             {
                 try
                 {

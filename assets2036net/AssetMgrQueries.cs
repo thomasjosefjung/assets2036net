@@ -17,7 +17,46 @@ using System.Threading.Tasks;
 
 namespace assets2036net
 {
-    public partial class AssetMgr : IDisposable
+    public class GenericApplicationMessageHandler
+    {
+        public GenericApplicationMessageHandler(Handler a)
+        {
+            TheHandler = a;
+        }
+
+        public delegate Task Handler(MqttApplicationMessageReceivedEventArgs eventArgs);
+
+        public Handler TheHandler;
+
+        public Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs eventArgs)
+        {
+            if (this.TheHandler != null)
+            {
+                return this.TheHandler(eventArgs);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    class GenericClientConnectedHandler 
+    {
+        public delegate Task Handler(MqttClientConnectedEventArgs eventArgs);
+
+        public Handler TheHandler;
+
+        public Task HandleConnectedAsync(MqttClientConnectedEventArgs eventArgs)
+        {
+            if (this.TheHandler != null)
+            {
+                return this.TheHandler(eventArgs);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    public partial class AssetMgr
     {
         public List<Submodel> GetSupportedSubmodels(string @namespace, string name)
         {
